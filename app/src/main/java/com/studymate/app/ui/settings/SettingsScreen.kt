@@ -17,7 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.DarkMode
+
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(navController: NavController) {
     var pushNotifications by remember { mutableStateOf(true) }
     var quizReminders by remember { mutableStateOf(true) }
-    var darkMode by remember { mutableStateOf(false) }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -114,23 +114,6 @@ fun SettingsScreen(navController: NavController) {
                         onCheckedChange = { quizReminders = it }
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 2. Appearance Group
-            SettingsSectionHeader(title = "APPEARANCE")
-            StudyMateCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = 12.dp
-            ) {
-                SettingsSwitchRow(
-                    icon = Icons.Default.DarkMode,
-                    title = "Dark Theme",
-                    subtitle = "Reduce glare during night study sessions",
-                    checked = darkMode,
-                    onCheckedChange = { darkMode = it }
-                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))

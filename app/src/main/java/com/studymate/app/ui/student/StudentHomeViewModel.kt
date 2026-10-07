@@ -16,8 +16,7 @@ data class StudentHomeUiState(
     val quizAverage: String = "",
     val materialsCount: Int = 0,
     val quizzesCount: Int = 0,
-    val weakTopics: List<String> = emptyList(),
-    val predictedPerformance: Float = 0f
+    val weakTopics: List<String> = emptyList()
 )
 
 data class MockMaterial(
@@ -49,8 +48,7 @@ class StudentHomeViewModel : ViewModel() {
                 quizAverage = "78%",
                 materialsCount = 12,
                 quizzesCount = 8,
-                weakTopics = listOf("Graphs", "Recursion", "Trees"),
-                predictedPerformance = 82f
+                weakTopics = listOf("Graphs", "Recursion", "Trees")
             )
         }
     }

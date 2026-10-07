@@ -26,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
@@ -351,15 +350,6 @@ fun StudentHomeScreen(
                     modifier = Modifier.weight(1f),
                     onClick = { navController.navigate(Screen.Summary.createRoute("1")) }
                 )
-                QuickActionItem(
-                    title = "Exam Predictor",
-                    subtitle = "High-priority topics",
-                    icon = Icons.Default.Insights,
-                    tint = PptOrange,
-                    bg = PptOrangeContainer,
-                    modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate(Screen.Predictor.route) }
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -434,78 +424,6 @@ fun StudentHomeScreen(
                         topic = topic,
                         isWeak = true,
                         onClick = { navController.navigate(Screen.QuizSetup.route) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(22.dp))
-
-            // 8. Exam Readiness Predictor Summary
-            SectionHeader(
-                title = "Exam Readiness",
-                actionText = "Predictor",
-                onActionClick = { navController.navigate(Screen.Predictor.route) }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            StudyMateCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { navController.navigate(Screen.Predictor.route) },
-                contentPadding = 16.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .background(SuccessGreenContainer, shape = RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "${uiState.predictedPerformance.toInt()}%",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = SuccessGreen
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Predicted Exam Score",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = SuccessGreenContainer
-                            ) {
-                                Text(
-                                    text = "On Track",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = SuccessGreen,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Historical test trend suggests strong performance.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
                     )
                 }
             }

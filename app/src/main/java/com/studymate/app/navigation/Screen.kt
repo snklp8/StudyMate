@@ -32,7 +32,6 @@ sealed class Screen(val route: String) {
         fun createRoute(quizId: String) = "quiz_result/$quizId"
     }
     object Progress : Screen("progress")
-    object Predictor : Screen("predictor")
     object StudentProfile : Screen("student_profile")
 
     // Teacher

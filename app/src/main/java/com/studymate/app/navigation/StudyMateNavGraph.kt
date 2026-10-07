@@ -12,7 +12,7 @@ import com.studymate.app.ui.materials.MaterialDetailScreen
 import com.studymate.app.ui.materials.MaterialsListScreen
 import com.studymate.app.ui.materials.UploadMaterialScreen
 import com.studymate.app.ui.notifications.NotificationsScreen
-import com.studymate.app.ui.prediction.PredictorScreen
+
 import com.studymate.app.ui.profile.StudentProfileScreen
 import com.studymate.app.ui.profile.TeacherProfileScreen
 import com.studymate.app.ui.progress.ProgressScreen
@@ -92,7 +92,6 @@ fun StudyMateNavGraph(navController: NavHostController, startDestination: String
             QuizResultScreen(navController = navController, quizId = quizId)
         }
         composable(Screen.Progress.route) { ProgressScreen(navController) }
-        composable(Screen.Predictor.route) { PredictorScreen(navController) }
         composable(Screen.StudentProfile.route) { StudentProfileScreen(navController) }
 
         // Teacher Screens
