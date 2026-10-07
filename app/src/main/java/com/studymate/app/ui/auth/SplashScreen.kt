@@ -1,7 +1,6 @@
 package com.studymate.app.ui.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -19,17 +18,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.studymate.app.data.model.UserRole
 import com.studymate.app.navigation.Screen
 import com.studymate.app.ui.components.StudyMateLogoBadge
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun SplashScreen(navController: NavController) {
-    LaunchedEffect(key1 = true) {
-        delay(1800)
-        navController.navigate(Screen.Login.route) {
-            popUpTo(Screen.Splash.route) { inclusive = true }
+fun SplashScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
+) {
+    LaunchedEffect(Unit) {
+        val minDelayJob = launch { delay(1600) }
+        authViewModel.checkCurrentSession { user ->
+            launch {
+                minDelayJob.join()
+                val targetRoute = when {
+                    user == null -> Screen.Login.route
+                    user.role == UserRole.TEACHER -> Screen.TeacherDashboard.route
+                    else -> Screen.StudentHome.route
+                }
+                navController.navigate(targetRoute) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+            }
         }
     }
 
@@ -58,7 +73,13 @@ fun SplashScreen(navController: NavController) {
                     letterSpacing = 1.2.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Version 1.0.0",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }

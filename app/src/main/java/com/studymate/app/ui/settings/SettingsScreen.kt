@@ -54,11 +54,16 @@ import com.studymate.app.navigation.Screen
 import com.studymate.app.ui.components.StudyMateCard
 import com.studymate.app.ui.theme.BorderSubtle
 import com.studymate.app.ui.theme.WeakRed
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.studymate.app.ui.auth.AuthViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(navController: NavController) {
+fun SettingsScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
+) {
     var pushNotifications by remember { mutableStateOf(true) }
     var quizReminders by remember { mutableStateOf(true) }
 
@@ -185,8 +190,10 @@ fun SettingsScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
+                        authViewModel.logout {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     },
                 containerColor = MaterialTheme.colorScheme.surface,

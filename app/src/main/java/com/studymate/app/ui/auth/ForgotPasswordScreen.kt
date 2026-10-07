@@ -1,9 +1,6 @@
 package com.studymate.app.ui.auth
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,33 +28,41 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.studymate.app.navigation.Screen
 import com.studymate.app.ui.components.StudyMateButton
 import com.studymate.app.ui.components.StudyMateTextField
 import com.studymate.app.ui.theme.SuccessGreen
 import com.studymate.app.ui.theme.SuccessGreenContainer
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordScreen(navController: NavController) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
+) {
     var email by remember { mutableStateOf("") }
-    var isSubmitted by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
+    val forgotPasswordState by authViewModel.forgotPasswordState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(forgotPasswordState) {
+        if (forgotPasswordState is ForgotPasswordState.Success) {
+            snackbarHostState.showSnackbar("Password reset instructions dispatched to $email")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -110,7 +114,10 @@ fun ForgotPasswordScreen(navController: NavController) {
 
             StudyMateTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    localError = null
+                },
                 label = "Email Address",
                 placeholder = "name@university.edu",
                 leadingIcon = {
@@ -124,7 +131,7 @@ fun ForgotPasswordScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (isSubmitted) {
+            if (forgotPasswordState is ForgotPasswordState.Success) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = SuccessGreenContainer,
@@ -152,21 +159,36 @@ fun ForgotPasswordScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            if (localError != null) {
+                Text(
+                    text = localError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            } else if (forgotPasswordState is ForgotPasswordState.Error) {
+                Text(
+                    text = (forgotPasswordState as ForgotPasswordState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             StudyMateButton(
-                text = if (isSubmitted) "Resend Instructions" else "Reset Password",
+                text = if (forgotPasswordState is ForgotPasswordState.Success) "Resend Instructions" else "Reset Password",
                 onClick = {
-                    if (email.isNotBlank()) {
-                        coroutineScope.launch {
-                            isLoading = true
-                            delay(800)
-                            isLoading = false
-                            isSubmitted = true
-                            snackbarHostState.showSnackbar("Password reset link sent to $email")
-                        }
+                    if (email.isBlank()) {
+                        localError = "Please enter your email address"
+                    } else {
+                        localError = null
+                        authViewModel.sendPasswordReset(email)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                isLoading = isLoading
+                isLoading = forgotPasswordState is ForgotPasswordState.Loading
             )
 
             Spacer(modifier = Modifier.height(24.dp))

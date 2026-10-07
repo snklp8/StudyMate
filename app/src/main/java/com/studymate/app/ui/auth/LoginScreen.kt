@@ -59,8 +59,8 @@ import com.studymate.app.ui.theme.BorderSubtle
 
 @Composable
 fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
-    var email by remember { mutableStateOf("alex.mercer@university.edu") }
-    var password by remember { mutableStateOf("password123") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
 

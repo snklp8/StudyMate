@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profile collection: users/{userId}
+    match /users/{userId} {
+      // Authenticated users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Authenticated users can create their own profile during registration
+      // Enforces that the document ID matches the authenticated UID
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId 
+                    && request.resource.data.uid == userId
+                    && request.resource.data.role in ['student', 'teacher'];
+      
+      // Authenticated users can update their own profile without tampering with uid or role
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId 
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.role == resource.data.role;
+      
+      // Disallow user profile deletion from client app
+      allow delete: if false;
+    }
+    
+    // Default fallback: deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

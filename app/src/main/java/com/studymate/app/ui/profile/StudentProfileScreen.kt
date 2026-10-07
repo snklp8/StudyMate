@@ -66,12 +66,15 @@ import com.studymate.app.ui.theme.WarningOrange
 import com.studymate.app.ui.theme.WarningOrangeContainer
 import com.studymate.app.ui.theme.WeakRed
 import com.studymate.app.ui.theme.WeakRedContainer
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.studymate.app.ui.auth.AuthViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentProfileScreen(
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -304,8 +307,10 @@ fun StudentProfileScreen(
                         subtitle = "Sign out from this device",
                         isDestructive = true,
                         onClick = {
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(0) { inclusive = true }
+                            authViewModel.logout {
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         }
                     )

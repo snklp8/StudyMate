@@ -63,12 +63,15 @@ import com.studymate.app.ui.theme.SuccessGreen
 import com.studymate.app.ui.theme.SuccessGreenContainer
 import com.studymate.app.ui.theme.WeakRed
 import com.studymate.app.ui.theme.WeakRedContainer
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.studymate.app.ui.auth.AuthViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherProfileScreen(
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -270,8 +273,10 @@ fun TeacherProfileScreen(
                         subtitle = "Sign out of faculty portal",
                         isDestructive = true,
                         onClick = {
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(0) { inclusive = true }
+                            authViewModel.logout {
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         }
                     )
