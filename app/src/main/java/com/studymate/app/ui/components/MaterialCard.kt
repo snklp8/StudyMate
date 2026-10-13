@@ -74,7 +74,7 @@ fun MaterialCard(
     val visual = when (material.type) {
         MaterialType.PDF -> FileTypeVisual(Icons.Default.PictureAsPdf, PdfRed, PdfRedContainer, "PDF")
         MaterialType.PPT, MaterialType.PPTX -> FileTypeVisual(Icons.Default.Slideshow, PptOrange, PptOrangeContainer, "PPT")
-        MaterialType.DOC, MaterialType.DOCX -> FileTypeVisual(Icons.Default.Description, DocBlue, DocBlueContainer, "DOC")
+        MaterialType.DOC, MaterialType.DOCX, MaterialType.TXT -> FileTypeVisual(Icons.Default.Description, DocBlue, DocBlueContainer, "DOC")
         MaterialType.YOUTUBE -> FileTypeVisual(Icons.Default.PlayCircle, YouTubeRed, YouTubeRedContainer, "YOUTUBE")
     }
 

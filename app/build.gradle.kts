@@ -1,4 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,6 +26,15 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String", "SUPABASE_URL",
+            "\"${localProperties["supabase.url"] ?: ""}\""
+        )
+        buildConfigField(
+            "String", "SUPABASE_ANON_KEY",
+            "\"${localProperties["supabase.anon.key"] ?: ""}\""
+        )
     }
 
     buildTypes {
@@ -41,6 +57,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -54,6 +71,13 @@ dependencies {
     implementation(firebaseBom)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+
+    // Supabase BoM, Auth (IDToken sign-in), Storage & Ktor Android engine
+    val supabaseBom = platform(libs.supabase.bom)
+    implementation(supabaseBom)
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.storage)
+    implementation(libs.ktor.client.android)
 
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)

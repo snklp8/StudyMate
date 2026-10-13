@@ -159,6 +159,23 @@ class FirebaseAuthRepository(
         }
     }
 
+    /**
+     * Returns the current user's Firebase ID token, or null if no user is signed in.
+     *
+     * Pass [forceRefresh] = true to bypass the cached token — required immediately
+     * after Firebase custom claims are updated, or when the cached token may be stale.
+     *
+     * The returned JWT is exchanged with Supabase via the third-party auth endpoint
+     * to obtain a Supabase session that can authenticate Storage requests.
+     */
+    suspend fun getFirebaseIdToken(forceRefresh: Boolean = false): String? {
+        return try {
+            auth.currentUser?.getIdToken(forceRefresh)?.await()?.token
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun mapAuthException(exception: Exception): Exception {
         val message = when (exception) {
             is FirebaseAuthInvalidUserException -> "No account found with this email."

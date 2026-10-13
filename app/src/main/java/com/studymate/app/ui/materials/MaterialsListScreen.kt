@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +63,10 @@ fun MaterialsListScreen(
     val uiState by viewModel.materialsState.collectAsState()
     var selectedFilter by remember { mutableStateOf("All") }
     val filterOptions = listOf("All", "PDF", "PPT", "DOC", "YouTube")
+
+    LaunchedEffect(Unit) {
+        viewModel.loadMaterials()
+    }
 
     StudentScaffold(
         navController = navController,

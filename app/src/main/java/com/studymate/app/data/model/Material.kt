@@ -1,6 +1,6 @@
 package com.studymate.app.data.model
 
-enum class MaterialType { PDF, PPT, PPTX, DOC, DOCX, YOUTUBE }
+enum class MaterialType { PDF, PPT, PPTX, DOC, DOCX, TXT, YOUTUBE }
 enum class ProcessingStatus { PENDING, PROCESSING, COMPLETED, FAILED }
 
 data class Material(

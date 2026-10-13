@@ -1,8 +1,11 @@
 package com.studymate.app.ui.materials
 
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +51,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,10 +62,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.studymate.app.data.model.MaterialType
 import com.studymate.app.ui.components.StudyMateButton
 import com.studymate.app.ui.components.StudyMateCard
 import com.studymate.app.ui.components.StudyMateTextField
@@ -71,43 +79,133 @@ import com.studymate.app.ui.theme.PdfRed
 import com.studymate.app.ui.theme.PdfRedContainer
 import com.studymate.app.ui.theme.PptOrange
 import com.studymate.app.ui.theme.PptOrangeContainer
-import com.studymate.app.ui.theme.StudyMateIndigo
 import com.studymate.app.ui.theme.StudyMateNavy
-import com.studymate.app.ui.theme.SuccessGreen
-import com.studymate.app.ui.theme.SuccessGreenContainer
 import com.studymate.app.ui.theme.YouTubeRed
-import com.studymate.app.ui.theme.YouTubeRedContainer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class SelectedFileInfo(
     val name: String,
     val type: String,
-    val size: String
-)
+    val size: String,
+    val bytes: ByteArray
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as SelectedFileInfo
+        return name == other.name && type == other.type && size == other.size
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + type.hashCode()
+        result = 31 * result + size.hashCode()
+        return result
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun UploadMaterialScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: MaterialsViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val uploadState by viewModel.uploadState.collectAsState()
+
     var title by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("PDF") }
-    val types = listOf("PDF", "PPT", "PPTX", "DOCX", "YouTube")
+    val types = listOf("PDF", "PPT", "PPTX", "DOCX", "TXT", "YouTube")
 
     var youtubeUrl by remember { mutableStateOf("") }
     var youtubeAdded by remember { mutableStateOf(false) }
 
-    var selectedFile by remember {
-        mutableStateOf<SelectedFileInfo?>(
-            SelectedFileInfo("Binary_Trees_And_BST_Basics.pdf", "PDF", "2.8 MB")
-        )
+    var selectedFile by remember { mutableStateOf<SelectedFileInfo?>(null) }
+
+    // Android Document Picker
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                var fileName = "document"
+                var fileSize = 0L
+
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (cursor.moveToFirst()) {
+                        if (nameIndex != -1) fileName = cursor.getString(nameIndex) ?: fileName
+                        if (sizeIndex != -1) fileSize = cursor.getLong(sizeIndex)
+                    }
+                }
+
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null && bytes.isNotEmpty()) {
+                    val sizeStr = when {
+                        bytes.size < 1024 -> "${bytes.size} B"
+                        bytes.size < 1024 * 1024 -> "${bytes.size / 1024} KB"
+                        else -> String.format(Locale.US, "%.1f MB", bytes.size / (1024.0 * 1024.0))
+                    }
+
+                    val ext = fileName.substringAfterLast('.', "").uppercase()
+                    val detectedType = when (ext) {
+                        "PDF" -> "PDF"
+                        "PPT" -> "PPT"
+                        "PPTX" -> "PPTX"
+                        "DOC", "DOCX" -> "DOCX"
+                        "TXT" -> "TXT"
+                        else -> selectedType
+                    }
+
+                    selectedType = detectedType
+                    selectedFile = SelectedFileInfo(
+                        name = fileName,
+                        type = detectedType,
+                        size = sizeStr,
+                        bytes = bytes
+                    )
+
+                    if (title.isBlank()) {
+                        title = fileName.substringBeforeLast('.')
+                    }
+                } else {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Could not read content from selected file.")
+                    }
+                }
+            } catch (e: Exception) {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Error opening file: ${e.localizedMessage ?: "Unknown error"}")
+                }
+            }
+        }
     }
 
-    var isProcessing by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    // Handle UploadState transitions
+    LaunchedEffect(uploadState) {
+        when (uploadState) {
+            is UploadUiState.Success -> {
+                snackbarHostState.showSnackbar((uploadState as UploadUiState.Success).message)
+                viewModel.resetUploadState()
+                delay(600)
+                navController.popBackStack()
+            }
+            is UploadUiState.Error -> {
+                snackbarHostState.showSnackbar((uploadState as UploadUiState.Error).message)
+                viewModel.resetUploadState()
+            }
+            else -> Unit
+        }
+    }
+
+    val isProcessing = uploadState is UploadUiState.Uploading
 
     Scaffold(
         topBar = {
@@ -189,13 +287,6 @@ fun UploadMaterialScreen(
                         selected = isSelected,
                         onClick = {
                             selectedType = type
-                            if (type != "YouTube" && selectedFile == null) {
-                                selectedFile = SelectedFileInfo(
-                                    name = "Lecture_Notes_${type.lowercase()}.${type.lowercase()}",
-                                    type = type,
-                                    size = "3.2 MB"
-                                )
-                            }
                         },
                         label = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -266,8 +357,8 @@ fun UploadMaterialScreen(
                         onClick = {
                             if (youtubeUrl.isNotBlank()) {
                                 youtubeAdded = true
-                                if (title.isBlank()) title = "Tree Traversals: Inorder, Preorder, Postorder"
-                                if (subject.isBlank()) subject = "CS 201 · Data Structures"
+                                if (title.isBlank()) title = "Video Lecture"
+                                if (subject.isBlank()) subject = "General Studies"
                             }
                         },
                         modifier = Modifier.padding(top = 22.dp)
@@ -305,34 +396,19 @@ fun UploadMaterialScreen(
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
-
-                                Surface(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(8.dp),
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color.Black.copy(alpha = 0.75f)
-                                ) {
-                                    Text(
-                                        text = "24:18",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
                             }
 
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = if (title.isNotBlank()) title else "Tree Traversals: Inorder, Preorder, Postorder Walkthrough",
+                                text = if (title.isNotBlank()) title else "YouTube Study Reference",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "YouTube Video Reference · CS Academic Hub",
+                                text = "$subject · Video Link",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -412,11 +488,15 @@ fun UploadMaterialScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                selectedFile = SelectedFileInfo(
-                                    name = "Advanced_Data_Structures_Module2.$selectedType",
-                                    type = selectedType,
-                                    size = "4.1 MB"
+                                val mimeTypes = arrayOf(
+                                    "application/pdf",
+                                    "application/vnd.ms-powerpoint",
+                                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                                    "application/msword",
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    "text/plain"
                                 )
+                                documentPickerLauncher.launch(mimeTypes)
                             },
                         containerColor = MaterialTheme.colorScheme.surface,
                         borderColor = BorderSubtle,
@@ -448,7 +528,7 @@ fun UploadMaterialScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Supports PDF, PPT, PPTX, DOCX up to 50 MB",
+                                text = "Supports PDF, PPT, PPTX, DOC, DOCX, TXT",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -461,15 +541,47 @@ fun UploadMaterialScreen(
 
             // Upload action button
             StudyMateButton(
-                text = "Upload & Process Material",
+                text = if (isProcessing) "Uploading..." else "Upload & Process Material",
+                enabled = !isProcessing,
                 onClick = {
-                    coroutineScope.launch {
-                        isProcessing = true
-                        delay(2200)
-                        isProcessing = false
-                        snackbarHostState.showSnackbar("Material successfully prepared and added to your library!")
-                        delay(400)
-                        navController.popBackStack()
+                    if (title.isBlank()) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Please enter a material title.")
+                        }
+                        return@StudyMateButton
+                    }
+                    if (subject.isBlank()) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Please enter a course / subject.")
+                        }
+                        return@StudyMateButton
+                    }
+
+                    if (selectedType != "YouTube" && selectedFile == null) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Please select a document to upload.")
+                        }
+                        return@StudyMateButton
+                    }
+
+                    val materialType = when (selectedType.uppercase()) {
+                        "PDF" -> MaterialType.PDF
+                        "PPT" -> MaterialType.PPT
+                        "PPTX" -> MaterialType.PPTX
+                        "DOC", "DOCX" -> MaterialType.DOCX
+                        "TXT" -> MaterialType.TXT
+                        "YOUTUBE" -> MaterialType.YOUTUBE
+                        else -> MaterialType.PDF
+                    }
+
+                    if (selectedFile != null) {
+                        viewModel.uploadMaterial(
+                            title = title.trim(),
+                            subject = subject.trim(),
+                            fileType = materialType,
+                            fileName = selectedFile!!.name,
+                            fileBytes = selectedFile!!.bytes
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -501,7 +613,7 @@ fun UploadMaterialScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
-                        text = "Preparing your material…",
+                        text = "Uploading to Private Storage…",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -509,7 +621,7 @@ fun UploadMaterialScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Extracting key concepts, formulas, and assessment topics for your study blocks.",
+                        text = "Securing file in Supabase Storage and recording metadata in Firestore.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
