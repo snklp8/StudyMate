@@ -58,6 +58,9 @@ import com.studymate.app.ui.theme.WarningOrangeContainer
 import com.studymate.app.ui.theme.WeakRed
 import com.studymate.app.ui.theme.WeakRedContainer
 
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun QuestionGeneratorScreen(
@@ -70,6 +73,7 @@ fun QuestionGeneratorScreen(
     val questionCount by viewModel.questionCount.collectAsState()
     val selectedTopic by viewModel.selectedTopic.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     val supportedTypes = listOf(
         Triple("MCQ", "Multiple Choice", Icons.Outlined.FactCheck),
@@ -93,6 +97,12 @@ fun QuestionGeneratorScreen(
         "Priority Queues & Binary Heaps"
     )
 
+    val currentMaterial by viewModel.currentMaterial.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(materialId) {
+        viewModel.loadMaterial(materialId)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -100,9 +110,10 @@ fun QuestionGeneratorScreen(
                     Column {
                         Text("Question Generator", fontWeight = FontWeight.Bold)
                         Text(
-                            "Generate customized revision prompts",
+                            currentMaterial?.title ?: "Generate revision prompts from document",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
                     }
                 },
@@ -127,7 +138,7 @@ fun QuestionGeneratorScreen(
 
             // 1. Topic Selection
             Text(
-                text = "TARGET TOPIC",
+                text = "TARGET SOURCE DOCUMENT",
                 style = MaterialTheme.typography.labelSmall.copy(
                     letterSpacing = 1.sp,
                     fontWeight = FontWeight.Bold
@@ -142,14 +153,14 @@ fun QuestionGeneratorScreen(
             ) {
                 Column {
                     Text(
-                        text = "Selected Subject: CS 201 · Data Structures",
+                        text = "Subject: ${currentMaterial?.subject ?: "Study Material"}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = selectedTopic,
+                        text = currentMaterial?.title ?: selectedTopic,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -331,13 +342,52 @@ fun QuestionGeneratorScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (!errorMessage.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = errorMessage ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.clearError() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // 5. Generate Button
             StudyMateButton(
-                text = "Generate Questions",
+                text = "Generate Questions with Gemini",
                 onClick = {
-                    viewModel.generateQuestions {
+                    viewModel.generateQuestions(materialId) {
                         navController.navigate(Screen.GeneratedQuestions.createRoute(materialId))
                     }
                 },

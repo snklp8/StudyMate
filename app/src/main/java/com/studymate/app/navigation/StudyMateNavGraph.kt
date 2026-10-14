@@ -76,20 +76,47 @@ fun StudyMateNavGraph(navController: NavHostController, startDestination: String
         }
         composable(Screen.QuestionGenerator.route) { backStackEntry ->
             val materialId = backStackEntry.arguments?.getString("materialId") ?: ""
-            QuestionGeneratorScreen(navController = navController, materialId = materialId)
+            val questionsViewModel: com.studymate.app.ui.questions.QuestionsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                viewModelStoreOwner = androidx.compose.runtime.remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.StudentHome.route)
+                }
+            )
+            QuestionGeneratorScreen(navController = navController, materialId = materialId, viewModel = questionsViewModel)
         }
         composable(Screen.GeneratedQuestions.route) { backStackEntry ->
             val materialId = backStackEntry.arguments?.getString("materialId") ?: ""
-            QuestionResultsScreen(navController = navController, materialId = materialId)
+            val questionsViewModel: com.studymate.app.ui.questions.QuestionsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                viewModelStoreOwner = androidx.compose.runtime.remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.StudentHome.route)
+                }
+            )
+            QuestionResultsScreen(navController = navController, materialId = materialId, viewModel = questionsViewModel)
         }
-        composable(Screen.QuizSetup.route) { QuizSetupScreen(navController) }
+        composable(Screen.QuizSetup.route) { backStackEntry ->
+            val quizViewModel: com.studymate.app.ui.quiz.QuizViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                viewModelStoreOwner = androidx.compose.runtime.remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.StudentHome.route)
+                }
+            )
+            QuizSetupScreen(navController, viewModel = quizViewModel)
+        }
         composable(Screen.QuizPlay.route) { backStackEntry ->
             val quizId = backStackEntry.arguments?.getString("quizId") ?: ""
-            QuizPlayScreen(navController = navController, quizId = quizId)
+            val quizViewModel: com.studymate.app.ui.quiz.QuizViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                viewModelStoreOwner = androidx.compose.runtime.remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.StudentHome.route)
+                }
+            )
+            QuizPlayScreen(navController = navController, quizId = quizId, viewModel = quizViewModel)
         }
         composable(Screen.QuizResult.route) { backStackEntry ->
             val quizId = backStackEntry.arguments?.getString("quizId") ?: ""
-            QuizResultScreen(navController = navController, quizId = quizId)
+            val quizViewModel: com.studymate.app.ui.quiz.QuizViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                viewModelStoreOwner = androidx.compose.runtime.remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.StudentHome.route)
+                }
+            )
+            QuizResultScreen(navController = navController, quizId = quizId, viewModel = quizViewModel)
         }
         composable(Screen.Progress.route) { ProgressScreen(navController) }
         composable(Screen.StudentProfile.route) { StudentProfileScreen(navController) }

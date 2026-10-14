@@ -21,19 +21,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +84,67 @@ fun QuizSetupScreen(
         Triple("Hard", "Complex edge-cases & deep theory", WeakRed to WeakRedContainer)
     )
 
+    val selectedMaterial by viewModel.selectedMaterial.collectAsState()
+    val availableMaterials by viewModel.availableMaterials.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    var showMaterialPicker by remember { mutableStateOf(false) }
+
+    if (showMaterialPicker) {
+        AlertDialog(
+            onDismissRequest = { showMaterialPicker = false },
+            title = { Text("Choose Study Material", fontWeight = FontWeight.Bold) },
+            text = {
+                if (availableMaterials.isEmpty()) {
+                    Text("No materials uploaded yet. Please upload course materials first.")
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        items(availableMaterials) { material ->
+                            val isChosen = material.id == selectedMaterial?.id
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        viewModel.selectMaterial(material)
+                                        showMaterialPicker = false
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isChosen) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, if (isChosen) MaterialTheme.colorScheme.primary else BorderSubtle)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(material.title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                        Text(material.subject, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Text(
+                                            text = material.type,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showMaterialPicker = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
     StudentScaffold(
         navController = navController,
         topBar = {
@@ -83,7 +153,7 @@ fun QuizSetupScreen(
                     Column {
                         Text("Practice Quiz", fontWeight = FontWeight.Bold)
                         Text(
-                            "Adaptive topic evaluation",
+                            "AI questions powered by Gemini",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -103,10 +173,27 @@ fun QuizSetupScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Topic / Source Material Card
-            Text("Source Material", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Source Material", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (availableMaterials.size > 1) {
+                    Text(
+                        text = "Change",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showMaterialPicker = true }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             StudyMateCard(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showMaterialPicker = true },
                 contentPadding = 14.dp
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -126,28 +213,21 @@ fun QuizSetupScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Data Structures & Algorithms",
+                            text = selectedMaterial?.title ?: "Select a document",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Binary Search, Trees & Arrays",
+                            text = selectedMaterial?.subject ?: "Click to choose document for quiz",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            text = "Auto",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Select material",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -263,20 +343,76 @@ fun QuizSetupScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (!errorMessage.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = errorMessage ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.clearError() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Start Button
             Button(
                 onClick = {
-                    viewModel.generateQuiz("material1", selectedDifficulty, selectedCount)
-                    navController.navigate(Screen.QuizPlay.createRoute("quiz1"))
+                    val matId = selectedMaterial?.id ?: "default"
+                    viewModel.generateQuiz(
+                        materialId = matId,
+                        difficulty = selectedDifficulty,
+                        count = selectedCount
+                    ) { generatedQuizId ->
+                        navController.navigate(Screen.QuizPlay.createRoute(generatedQuizId))
+                    }
                 },
+                enabled = !isLoading && selectedMaterial != null,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Start Practice Quiz", fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Generating with Gemini...", fontWeight = FontWeight.Bold)
+                } else {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Start Practice Quiz", fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.height(28.dp))

@@ -62,9 +62,13 @@ object PdfTextExtractor {
 
         return when {
             type == "TXT" -> {
-                Result.failure(
-                    PdfExtractionException("Summaries are not supported for plain text (.txt) files. Please upload your course notes as a PDF, DOCX, or PPTX document.")
-                )
+                val str = String(fileBytes, Charsets.UTF_8).trim()
+                if (str.length < MIN_CHARACTERS_FOR_SCANNED_CHECK) {
+                    Result.failure(EmptyDocumentException("The text document contains fewer than $MIN_CHARACTERS_FOR_SCANNED_CHECK characters."))
+                } else {
+                    val bounded = if (str.length > MAX_CHARACTERS) str.substring(0, MAX_CHARACTERS) else str
+                    Result.success(bounded)
+                }
             }
             type in listOf("DOCX", "DOC") -> {
                 if (isZipArchive(fileBytes)) {

@@ -392,7 +392,14 @@ fun MaterialDetailScreen(
                 ) {
                     StudyMateButton(
                         text = "Start Quiz",
-                        onClick = { navController.navigate(Screen.QuizSetup.route) },
+                        onClick = {
+                            runCatching {
+                                val homeEntry = navController.getBackStackEntry(Screen.StudentHome.route)
+                                val quizVm = androidx.lifecycle.ViewModelProvider(homeEntry)[com.studymate.app.ui.quiz.QuizViewModel::class.java]
+                                quizVm.loadMaterials(materialId)
+                            }
+                            navController.navigate(Screen.QuizSetup.route)
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = Icons.Default.Quiz
                     )

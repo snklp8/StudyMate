@@ -79,8 +79,9 @@ fun QuestionResultsScreen(
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(materialId) {
+        viewModel.loadMaterial(materialId)
         if (questions.isEmpty()) {
-            viewModel.generateQuestions()
+            viewModel.generateQuestions(materialId)
         }
     }
 
@@ -143,7 +144,7 @@ fun QuestionResultsScreen(
                     ) {
                         StudyMateOutlinedButton(
                             text = "Generate Again",
-                            onClick = { viewModel.generateQuestions() },
+                            onClick = { viewModel.generateQuestions(materialId) },
                             leadingIcon = Icons.Default.Refresh,
                             modifier = Modifier.weight(1f)
                         )
