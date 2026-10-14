@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,17 +93,22 @@ fun TeacherMaterialsScreen(navController: NavController) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    var materialsList by remember {
-        mutableStateOf(
-            listOf(
-                TeacherMaterialItem("m1", "Binary Trees & BST Basics", "PDF", "CS 201 · Data Structures", "CSE-A", "Yesterday"),
-                TeacherMaterialItem("m2", "Divide & Conquer Strategies", "PPT", "CS 302 · Algorithms", "CSE-B", "Oct 12"),
-                TeacherMaterialItem("m3", "Dynamic Programming Lectures", "Video", "CS 302 · Algorithms", "CSE-A", "Oct 10"),
-                TeacherMaterialItem("m4", "Operating Systems Notes", "DOCX", "EE 110 · Computer OS", "CSE-C", "Oct 08"),
-                TeacherMaterialItem("m5", "TCP/IP Protocol Stack", "PDF", "EE 342 · Networks", "CSE-A", "Oct 02"),
-                TeacherMaterialItem("m6", "Dijkstra's Algorithm Walkthrough", "Video", "CS 302 · Algorithms", "CSE-B", "Sep 28")
-            )
-        )
+    val materialsViewModel: com.studymate.app.ui.materials.MaterialsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val materialsState by materialsViewModel.materialsState.collectAsState()
+
+    val materialsList = when (materialsState) {
+        is com.studymate.app.ui.materials.MaterialsUiState.Success ->
+            (materialsState as com.studymate.app.ui.materials.MaterialsUiState.Success).materials.map { m ->
+                TeacherMaterialItem(
+                    id = m.id,
+                    title = m.title,
+                    type = m.type,
+                    subject = m.subject,
+                    batchAssigned = m.batchName ?: "",
+                    date = m.uploadDate
+                )
+            }
+        else -> emptyList()
     }
 
     val filteredList = materialsList.filter { item ->
@@ -346,7 +352,7 @@ fun TeacherMaterialsScreen(navController: NavController) {
                                             text = { Text("Remove Material", color = MaterialTheme.colorScheme.error) },
                                             onClick = {
                                                 menuExpanded = false
-                                                materialsList = materialsList.filter { it.id != item.id }
+                                                materialsViewModel.deleteMaterial(item.id)
                                                 coroutineScope.launch {
                                                     snackbarHostState.showSnackbar("Material removed")
                                                 }

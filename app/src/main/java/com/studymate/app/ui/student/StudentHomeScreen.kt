@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -60,8 +60,6 @@ import com.studymate.app.ui.components.StudyMateCard
 import com.studymate.app.ui.components.TopicChip
 import com.studymate.app.ui.theme.DocBlue
 import com.studymate.app.ui.theme.DocBlueContainer
-import com.studymate.app.ui.theme.PdfRed
-import com.studymate.app.ui.theme.PdfRedContainer
 import com.studymate.app.ui.theme.PptOrange
 import com.studymate.app.ui.theme.PptOrangeContainer
 import com.studymate.app.ui.theme.StudyMateNavy
@@ -75,6 +73,10 @@ fun StudentHomeScreen(
     viewModel: StudentHomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
 
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -121,7 +123,7 @@ fun StudentHomeScreen(
                         onClick = { navController.navigate(Screen.Notifications.route) }
                     ) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Notifications,
+                            imageVector = Icons.Default.Notifications,
                             contentDescription = "Notifications",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -137,7 +139,7 @@ fun StudentHomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = uiState.userName.take(1).ifBlank { "A" },
+                            text = uiState.userName.take(1).ifBlank { "S" },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -148,170 +150,122 @@ fun StudentHomeScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // 2. Weekly Momentum Banner
-            StudyMateCard(
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = StudyMateNavy,
-                borderWidth = 0.dp,
-                contentPadding = 18.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color.White.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = "THIS WEEK'S TARGET",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF93C5FD),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    Text(
-                        text = "68% Complete",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = "You're making steady progress across core subjects.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFE2E8F0),
-                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                LinearProgressIndicator(
-                    progress = { 0.68f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp),
-                    color = Color(0xFF38BDF8),
-                    trackColor = Color.White.copy(alpha = 0.2f),
-                    strokeCap = StrokeCap.Round
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "12 modules completed • 4 remaining",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF94A3B8)
-                    )
-                    Button(
-                        onClick = { navController.navigate(Screen.Progress.route) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = StudyMateNavy
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "View Analytics",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 3. Continue Learning Active Card
+            // 2. Continue Learning Active Card
             SectionHeader(
                 title = "Continue Learning",
                 subtitle = "Pick up where you left off"
             )
             Spacer(modifier = Modifier.height(8.dp))
-            StudyMateCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { navController.navigate(Screen.MaterialDetail.createRoute("2")) },
-                contentPadding = 16.dp
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(PptOrangeContainer, shape = RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Bookmark,
-                            contentDescription = null,
-                            tint = PptOrange,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Operating Systems PPT",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Computer Science • Slide 24 of 48",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
+            if (uiState.continueMaterial != null) {
+                val material = uiState.continueMaterial!!
+                StudyMateCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { navController.navigate(Screen.MaterialDetail.createRoute(material.id)) },
+                    contentPadding = 16.dp
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(PptOrangeContainer, shape = RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PlayArrow,
+                                imageVector = Icons.Default.Bookmark,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
+                                tint = PptOrange,
+                                modifier = Modifier.size(24.dp)
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Resume",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = material.title,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${material.subject.ifBlank { "Study Material" }} • ${material.type.name}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "Study",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
+            } else {
+                StudyMateCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { navController.navigate(Screen.StudentBatches.route) },
+                    contentPadding = 16.dp
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(DocBlueContainer, shape = RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.School,
+                                contentDescription = null,
+                                tint = DocBlue,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                LinearProgressIndicator(
-                    progress = { 0.72f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(5.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Round
-                )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Join Class Batches",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Enter instructor code to access class notes & study files",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -350,6 +304,15 @@ fun StudentHomeScreen(
                     modifier = Modifier.weight(1f),
                     onClick = { navController.navigate(Screen.Summary.createRoute("select")) }
                 )
+                QuickActionItem(
+                    title = "My Batches",
+                    subtitle = "${uiState.batchesCount} enrolled",
+                    icon = Icons.Default.School,
+                    tint = Color(0xFFEA580C),
+                    bg = Color(0xFFFFF7ED),
+                    modifier = Modifier.weight(1f),
+                    onClick = { navController.navigate(Screen.StudentBatches.route) }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -361,72 +324,36 @@ fun StudentHomeScreen(
                 onActionClick = { navController.navigate(Screen.StudentMaterials.route) }
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                uiState.recentMaterials.forEach { material ->
-                    MaterialCardItem(
-                        title = material.title,
-                        subject = material.subject,
-                        type = material.type,
-                        metadata = "2 hrs ago",
-                        status = "Ready",
-                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute(material.id)) }
+            if (uiState.recentMaterials.isEmpty()) {
+                StudyMateCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { navController.navigate(Screen.UploadMaterial.route) },
+                    contentPadding = 16.dp
+                ) {
+                    Text(
+                        text = "No study materials yet. Upload your notes or join a batch to access study content.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.recentMaterials.forEach { material ->
+                        MaterialCardItem(
+                            title = material.title,
+                            subject = material.subject.ifBlank { "General" },
+                            type = material.type.name,
+                            metadata = material.batchName,
+                            status = "Ready",
+                            onClick = { navController.navigate(Screen.MaterialDetail.createRoute(material.id)) }
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 6. Academic Performance Overview
-            SectionHeader(
-                title = "Academic Performance",
-                actionText = "Details",
-                onActionClick = { navController.navigate(Screen.Progress.route) }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Quiz Avg",
-                    value = uiState.quizAverage,
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    iconTint = MaterialTheme.colorScheme.primary
-                )
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Materials",
-                    value = uiState.materialsCount.toString(),
-                    icon = Icons.AutoMirrored.Filled.MenuBook,
-                    iconTint = DocBlue
-                )
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Quizzes",
-                    value = uiState.quizzesCount.toString(),
-                    icon = Icons.Default.Quiz,
-                    iconTint = SuccessGreen
-                )
-            }
 
-            Spacer(modifier = Modifier.height(22.dp))
-
-            // 7. Topics Requiring Focus
-            SectionHeader(
-                title = "Focus Topics",
-                subtitle = "Based on recent diagnostic quizzes"
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                uiState.weakTopics.forEach { topic ->
-                    TopicChip(
-                        topic = topic,
-                        isWeak = true,
-                        onClick = { navController.navigate(Screen.QuizSetup.route) }
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(28.dp))
         }
@@ -476,4 +403,3 @@ private fun QuickActionItem(
         )
     }
 }
-

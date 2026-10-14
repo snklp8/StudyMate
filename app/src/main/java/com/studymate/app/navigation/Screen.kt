@@ -33,6 +33,10 @@ sealed class Screen(val route: String) {
     }
     object Progress : Screen("progress")
     object StudentProfile : Screen("student_profile")
+    object StudentBatches : Screen("student_batches")
+    object StudentBatchDetail : Screen("student_batch_detail/{batchId}") {
+        fun createRoute(batchId: String) = "student_batch_detail/$batchId"
+    }
 
     // Teacher
     object TeacherDashboard : Screen("teacher_dashboard")

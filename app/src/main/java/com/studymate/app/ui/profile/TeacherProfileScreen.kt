@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -27,21 +26,20 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,8 +48,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.studymate.app.navigation.Screen
+import com.studymate.app.ui.auth.AuthViewModel
 import com.studymate.app.ui.components.StatCard
 import com.studymate.app.ui.components.StudyMateCard
 import com.studymate.app.ui.teacher.TeacherScaffold
@@ -63,18 +63,19 @@ import com.studymate.app.ui.theme.SuccessGreen
 import com.studymate.app.ui.theme.SuccessGreenContainer
 import com.studymate.app.ui.theme.WeakRed
 import com.studymate.app.ui.theme.WeakRedContainer
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.studymate.app.ui.auth.AuthViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherProfileScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    profileViewModel: TeacherProfileViewModel = viewModel()
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    val uiState by profileViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        profileViewModel.refresh()
+    }
 
     TeacherScaffold(
         navController = navController,
@@ -93,6 +94,18 @@ fun TeacherProfileScreen(
             )
         }
     ) { paddingValues ->
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+            return@TeacherScaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -102,7 +115,7 @@ fun TeacherProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Profile Info Card
+            // Profile Info Card (Dynamic Name & Email)
             StudyMateCard(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = 18.dp
@@ -119,7 +132,7 @@ fun TeacherProfileScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "RK",
+                            text = uiState.initials,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = Color.White
                         )
@@ -129,75 +142,37 @@ fun TeacherProfileScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Dr. Rajesh Kumar",
+                            text = uiState.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "kumar@university.edu",
+                            text = uiState.email.ifBlank { "Faculty Account" },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                text = "Associate Professor · Faculty",
+                                text = "Faculty / Instructor",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                HorizontalDivider(thickness = 1.dp, color = BorderSubtle)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Institution & Department Details
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "INSTITUTION",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Stanford University",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "DEPARTMENT",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Computer Science & Eng",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Batches Managed Stats
+            // Batches Managed Stats (Dynamic)
             Text(
                 text = "TEACHING OVERVIEW",
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold),
@@ -212,18 +187,32 @@ fun TeacherProfileScreen(
                 StatCard(
                     modifier = Modifier.weight(1f),
                     label = "Batches Managed",
-                    value = "5",
+                    value = uiState.batchesCount.toString(),
                     icon = Icons.Default.Groups,
                     tint = MaterialTheme.colorScheme.primary,
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
                 StatCard(
                     modifier = Modifier.weight(1f),
-                    label = "Students Guided",
-                    value = "184",
+                    label = "Students Enrolled",
+                    value = uiState.totalStudents.toString(),
                     icon = Icons.Default.AccountBalance,
                     tint = SuccessGreen,
                     containerColor = SuccessGreenContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Materials Uploaded",
+                    value = uiState.materialsCount.toString(),
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    tint = DocBlue,
+                    containerColor = DocBlueContainer
                 )
             }
 
@@ -245,32 +234,28 @@ fun TeacherProfileScreen(
                     TeacherOptionRow(
                         icon = Icons.Default.Edit,
                         title = "Edit Profile",
-                        subtitle = "Personal details & faculty designation",
-                        onClick = {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Faculty profile editing mode")
-                            }
-                        }
+                        subtitle = "Managed by institutional login",
+                        onClick = null
                     )
                     HorizontalDivider(thickness = 1.dp, color = BorderSubtle, modifier = Modifier.padding(vertical = 6.dp))
                     TeacherOptionRow(
                         icon = Icons.Default.Notifications,
                         title = "Notifications",
-                        subtitle = "Cohort alerts and test submissions",
+                        subtitle = "Cohort alerts and student activity",
                         onClick = { navController.navigate(Screen.Notifications.route) }
                     )
                     HorizontalDivider(thickness = 1.dp, color = BorderSubtle, modifier = Modifier.padding(vertical = 6.dp))
                     TeacherOptionRow(
                         icon = Icons.Default.Settings,
                         title = "Settings",
-                        subtitle = "Preferences, security, and appearance",
+                        subtitle = "Appearance, privacy, and preferences",
                         onClick = { navController.navigate(Screen.Settings.route) }
                     )
                     HorizontalDivider(thickness = 1.dp, color = BorderSubtle, modifier = Modifier.padding(vertical = 6.dp))
                     TeacherOptionRow(
                         icon = Icons.AutoMirrored.Filled.Logout,
                         title = "Logout",
-                        subtitle = "Sign out of faculty portal",
+                        subtitle = "Sign out from this device",
                         isDestructive = true,
                         onClick = {
                             authViewModel.logout {
@@ -283,7 +268,7 @@ fun TeacherProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
@@ -294,13 +279,21 @@ private fun TeacherOptionRow(
     title: String,
     subtitle: String,
     isDestructive: Boolean = false,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
-    Row(
-        modifier = Modifier
+    val modifier = if (onClick != null) {
+        Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 6.dp, vertical = 6.dp),
+            .padding(horizontal = 6.dp, vertical = 6.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp, vertical = 6.dp)
+    }
+
+    Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -336,11 +329,13 @@ private fun TeacherOptionRow(
             )
         }
 
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp)
-        )
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }

@@ -22,7 +22,9 @@ data class MaterialItem(
     val fileSize: String,
     val status: String,
     val readingProgress: Float = 0.65f,
-    val storagePath: String = ""
+    val storagePath: String = "",
+    val batchId: String? = null,
+    val batchName: String? = null
 )
 
 sealed class MaterialsUiState {
@@ -97,7 +99,9 @@ class MaterialsViewModel(
         subject: String,
         fileType: MaterialType,
         fileName: String,
-        fileBytes: ByteArray
+        fileBytes: ByteArray,
+        batchId: String? = null,
+        batchName: String? = null
     ) {
         viewModelScope.launch {
             _uploadState.value = UploadUiState.Uploading
@@ -106,7 +110,9 @@ class MaterialsViewModel(
                 subject = subject,
                 fileType = fileType,
                 fileName = fileName,
-                fileBytes = fileBytes
+                fileBytes = fileBytes,
+                batchId = batchId,
+                batchName = batchName
             )
             result.fold(
                 onSuccess = {
@@ -168,7 +174,9 @@ class MaterialsViewModel(
             fileSize = sizeFormatted,
             status = statusFormatted,
             readingProgress = 0.0f,
-            storagePath = fileUrl ?: ""
+            storagePath = fileUrl ?: "",
+            batchId = batchId,
+            batchName = batchName
         )
     }
 }

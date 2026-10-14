@@ -125,7 +125,7 @@ fun TeacherDashboardScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "K",
+                                text = uiState.teacherInitials,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -159,13 +159,13 @@ fun TeacherDashboardScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Good morning, Dr. Kumar 👋",
+                                text = "Good morning, ${uiState.teacherName} 👋",
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Dept of Computer Science & Engineering",
+                                text = uiState.teacherEmail.ifBlank { "Faculty Account" },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -270,79 +270,7 @@ fun TeacherDashboardScreen(
                     }
                 }
 
-                // 4. Batch Performance (CSE-A 78% average, CSE-B 71% average)
-                item {
-                    SectionHeader(
-                        title = "Batch Performance Overview",
-                        actionText = "Full Analytics",
-                        onActionClick = { navController.navigate(Screen.BatchPerformance.createRoute("all")) }
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(
-                            Triple("CSE-A", "Data Structures & Algorithms • 42 students", 78),
-                            Triple("CSE-B", "Operating Systems • 38 students", 71),
-                            Triple("CSE-C", "Database Management • 45 students", 83)
-                        ).forEach { (batchName, subtitle, avg) ->
-                            StudyMateCard(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { navController.navigate(Screen.BatchDetail.createRoute("batch1")) },
-                                contentPadding = 14.dp
-                            ) {
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = batchName,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = subtitle,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = if (avg >= 75) SuccessGreenContainer else WarningOrangeContainer
-                                        ) {
-                                            Text(
-                                                text = "$avg% average",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (avg >= 75) SuccessGreen else WarningOrange,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    LinearProgressIndicator(
-                                        progress = { avg / 100f },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(6.dp)
-                                            .clip(RoundedCornerShape(3.dp)),
-                                        color = if (avg >= 75) SuccessGreen else MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        strokeCap = StrokeCap.Round
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
 
                 // 5. Recent Activity Feed
                 item {

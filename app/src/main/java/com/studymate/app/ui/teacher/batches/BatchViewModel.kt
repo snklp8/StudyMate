@@ -4,12 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studymate.app.data.model.Batch
 import com.studymate.app.data.model.BatchStudent
-import kotlinx.coroutines.delay
+import com.studymate.app.data.model.Material
+import com.studymate.app.data.repository.BatchRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 sealed class BatchesUiState {
     object Loading : BatchesUiState()
@@ -18,7 +18,16 @@ sealed class BatchesUiState {
     data class Error(val message: String) : BatchesUiState()
 }
 
-class BatchViewModel : ViewModel() {
+sealed class CreateBatchUiState {
+    object Idle : CreateBatchUiState()
+    object Loading : CreateBatchUiState()
+    data class Success(val batch: Batch) : CreateBatchUiState()
+    data class Error(val message: String) : CreateBatchUiState()
+}
+
+class BatchViewModel(
+    private val repository: BatchRepository = BatchRepository()
+) : ViewModel() {
     private val _batchesState = MutableStateFlow<BatchesUiState>(BatchesUiState.Loading)
     val batchesState: StateFlow<BatchesUiState> = _batchesState.asStateFlow()
 
@@ -28,58 +37,11 @@ class BatchViewModel : ViewModel() {
     private val _batchStudents = MutableStateFlow<List<BatchStudent>>(emptyList())
     val batchStudents: StateFlow<List<BatchStudent>> = _batchStudents.asStateFlow()
 
-    private val mockBatches = mutableListOf(
-        Batch(
-            id = "1",
-            name = "B.Tech CSE - Sem 3",
-            course = "Computer Science",
-            semester = 3,
-            academicYear = "2026-2027",
-            batchCode = "CSE3-A2K26",
-            studentCount = 42,
-            averageScore = 76f
-        ),
-        Batch(
-            id = "2",
-            name = "B.Tech CSE - Sem 5",
-            course = "Computer Science",
-            semester = 5,
-            academicYear = "2026-2027",
-            batchCode = "CSE5-B2K26",
-            studentCount = 38,
-            averageScore = 81f
-        ),
-        Batch(
-            id = "3",
-            name = "B.Tech IT - Sem 3",
-            course = "Information Technology",
-            semester = 3,
-            academicYear = "2026-2027",
-            batchCode = "IT3-A2K26",
-            studentCount = 45,
-            averageScore = 72f
-        ),
-        Batch(
-            id = "4",
-            name = "B.Tech ECE - Sem 7",
-            course = "Electronics",
-            semester = 7,
-            academicYear = "2026-2027",
-            batchCode = "ECE7-C2K26",
-            studentCount = 30,
-            averageScore = 85f
-        ),
-        Batch(
-            id = "5",
-            name = "MCA - Sem 1",
-            course = "Master of Computer Applications",
-            semester = 1,
-            academicYear = "2026-2027",
-            batchCode = "MCA1-2K26",
-            studentCount = 60,
-            averageScore = 68f
-        )
-    )
+    private val _batchMaterials = MutableStateFlow<List<Material>>(emptyList())
+    val batchMaterials: StateFlow<List<Material>> = _batchMaterials.asStateFlow()
+
+    private val _createState = MutableStateFlow<CreateBatchUiState>(CreateBatchUiState.Idle)
+    val createState: StateFlow<CreateBatchUiState> = _createState.asStateFlow()
 
     init {
         loadBatches()
@@ -88,41 +50,83 @@ class BatchViewModel : ViewModel() {
     fun loadBatches() {
         viewModelScope.launch {
             _batchesState.value = BatchesUiState.Loading
-            delay(500)
-            _batchesState.value = BatchesUiState.Success(mockBatches)
+            try {
+                val list = repository.getTeacherBatches()
+                if (list.isEmpty()) {
+                    _batchesState.value = BatchesUiState.Empty
+                } else {
+                    _batchesState.value = BatchesUiState.Success(list)
+                }
+            } catch (e: Exception) {
+                _batchesState.value = BatchesUiState.Error(e.localizedMessage ?: "Failed to load batches")
+            }
         }
     }
 
     fun loadBatch(id: String) {
-        _selectedBatch.value = mockBatches.find { it.id == id }
+        viewModelScope.launch {
+            try {
+                val b = repository.getBatchById(id)
+                _selectedBatch.value = b
+            } catch (_: Exception) {
+                _selectedBatch.value = null
+            }
+        }
     }
 
     fun loadBatchStudents(batchId: String) {
-        _batchStudents.value = List(10) {
-            BatchStudent(
-                studentId = "std_$it",
-                name = "Student ${it + 1}",
-                email = "student${it + 1}@university.edu",
-                performance = (60 + (it * 3.5f)),
-                lastActivity = "2 days ago"
+        viewModelScope.launch {
+            try {
+                val students = repository.getBatchStudents(batchId)
+                _batchStudents.value = students
+            } catch (_: Exception) {
+                _batchStudents.value = emptyList()
+            }
+        }
+    }
+
+    fun loadBatchMaterials(batchId: String) {
+        viewModelScope.launch {
+            try {
+                val materials = repository.getBatchMaterials(batchId)
+                _batchMaterials.value = materials
+            } catch (_: Exception) {
+                _batchMaterials.value = emptyList()
+            }
+        }
+    }
+
+    fun createBatch(
+        name: String,
+        course: String,
+        semester: Int,
+        year: String,
+        description: String,
+        onSuccess: (Batch) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _createState.value = CreateBatchUiState.Loading
+            val result = repository.createBatch(
+                name = name,
+                course = course,
+                semester = semester,
+                academicYear = year,
+                description = description
+            )
+            result.fold(
+                onSuccess = { created ->
+                    _createState.value = CreateBatchUiState.Success(created)
+                    loadBatches()
+                    onSuccess(created)
+                },
+                onFailure = { error ->
+                    _createState.value = CreateBatchUiState.Error(error.localizedMessage ?: "Failed to create batch")
+                }
             )
         }
     }
 
-    fun createBatch(name: String, course: String, semester: Int, year: String): String {
-        val code = "${course.take(3).uppercase()}$semester-${year.takeLast(2)}"
-        val newBatch = Batch(
-            id = UUID.randomUUID().toString(),
-            name = name,
-            course = course,
-            semester = semester,
-            studentCount = 0,
-            averageScore = 0f,
-            batchCode = code,
-            academicYear = year
-        )
-        mockBatches.add(newBatch)
-        loadBatches()
-        return code
+    fun resetCreateState() {
+        _createState.value = CreateBatchUiState.Idle
     }
 }

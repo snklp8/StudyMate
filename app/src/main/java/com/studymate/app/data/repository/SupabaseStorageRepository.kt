@@ -37,7 +37,7 @@ class SupabaseStorageRepository(
     private val bucket = "study-materials"
 
     // -------------------------------------------------------------------------
-    // MaterialRepository — listing (scoped to current user's UID)
+    // MaterialRepository — listing (scoped to user's UID and enrolled batches)
     // -------------------------------------------------------------------------
 
     override suspend fun getMaterials(): List<Material> = withContext(Dispatchers.IO) {
@@ -45,12 +45,35 @@ class SupabaseStorageRepository(
         val uid = currentUser.uid
 
         try {
-            val snapshot = firestore.collection("materials")
+            // 1. Get materials owned by user
+            val ownedDocs = firestore.collection("materials")
                 .whereEqualTo("ownerId", uid)
                 .get()
                 .await()
+                .documents
 
-            snapshot.documents.mapNotNull { doc ->
+            // 2. Get materials from batches the user is enrolled in
+            val enrolledBatches = firestore.collection("batches")
+                .whereArrayContains("studentIds", uid)
+                .get()
+                .await()
+                .documents
+
+            val batchMaterialDocs = mutableListOf<com.google.firebase.firestore.DocumentSnapshot>()
+            for (batchDoc in enrolledBatches) {
+                val bId = batchDoc.id
+                val docs = firestore.collection("materials")
+                    .whereEqualTo("batchId", bId)
+                    .get()
+                    .await()
+                    .documents
+                batchMaterialDocs.addAll(docs)
+            }
+
+            // Combine and deduplicate by document id
+            val allDocs = (ownedDocs + batchMaterialDocs).distinctBy { it.id }
+
+            allDocs.mapNotNull { doc ->
                 val id = doc.getString("id") ?: doc.id
                 val title = doc.getString("title") ?: return@mapNotNull null
                 val typeStr = doc.getString("type") ?: doc.getString("fileType") ?: "PDF"
@@ -59,17 +82,21 @@ class SupabaseStorageRepository(
                 val size = doc.getLong("size")
                 val createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis()
                 val statusStr = doc.getString("processingStatus") ?: "COMPLETED"
+                val batchId = doc.getString("batchId")
+                val batchName = doc.getString("batchName")
 
                 Material(
                     id = id,
-                    uploadedBy = uid,
+                    uploadedBy = doc.getString("ownerId") ?: uid,
                     title = title,
                     type = typeStr.toMaterialType(),
                     fileUrl = storagePath,
                     subject = subject,
                     size = size,
                     processingStatus = runCatching { ProcessingStatus.valueOf(statusStr) }.getOrDefault(ProcessingStatus.COMPLETED),
-                    createdAt = createdAt
+                    createdAt = createdAt,
+                    batchId = batchId,
+                    batchName = batchName
                 )
             }.sortedByDescending { it.createdAt }
         } catch (_: Exception) {
@@ -86,7 +113,22 @@ class SupabaseStorageRepository(
             if (!doc.exists()) return@runCatching null
 
             val ownerId = doc.getString("ownerId")
-            if (ownerId != uid) return@runCatching null
+            val batchId = doc.getString("batchId")
+            val isOwner = ownerId == uid
+
+            val isAuthorized = if (isOwner) {
+                true
+            } else if (!batchId.isNullOrBlank()) {
+                val batchDoc = firestore.collection("batches").document(batchId).get().await()
+                @Suppress("UNCHECKED_CAST")
+                val studentIds = batchDoc.get("studentIds") as? List<String> ?: emptyList()
+                val teacherId = batchDoc.getString("teacherId")
+                teacherId == uid || studentIds.contains(uid)
+            } else {
+                false
+            }
+
+            if (!isAuthorized) return@runCatching null
 
             val title = doc.getString("title") ?: ""
             val typeStr = doc.getString("type") ?: doc.getString("fileType") ?: "PDF"
@@ -95,17 +137,20 @@ class SupabaseStorageRepository(
             val size = doc.getLong("size")
             val createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis()
             val statusStr = doc.getString("processingStatus") ?: "COMPLETED"
+            val batchName = doc.getString("batchName")
 
             Material(
                 id = doc.id,
-                uploadedBy = uid,
+                uploadedBy = ownerId ?: uid,
                 title = title,
                 type = typeStr.toMaterialType(),
                 fileUrl = storagePath,
                 subject = subject,
                 size = size,
                 processingStatus = runCatching { ProcessingStatus.valueOf(statusStr) }.getOrDefault(ProcessingStatus.COMPLETED),
-                createdAt = createdAt
+                createdAt = createdAt,
+                batchId = batchId,
+                batchName = batchName
             )
         }.getOrNull()
     }
@@ -136,7 +181,9 @@ class SupabaseStorageRepository(
         subject: String,
         fileType: MaterialType,
         fileName: String,
-        fileBytes: ByteArray
+        fileBytes: ByteArray,
+        batchId: String? = null,
+        batchName: String? = null
     ): Result<Material> = withContext(Dispatchers.IO) {
         val currentUser = firebaseAuth.currentUser
             ?: return@withContext Result.failure(IllegalStateException("User is not authenticated."))
@@ -162,7 +209,7 @@ class SupabaseStorageRepository(
         // Step 2: Write metadata to Firestore
         val materialId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
-        val docData = hashMapOf(
+        val docData = hashMapOf<String, Any?>(
             "id" to materialId,
             "ownerId" to uid,
             "title" to title,
@@ -172,7 +219,9 @@ class SupabaseStorageRepository(
             "storagePath" to storagePath,
             "size" to fileBytes.size.toLong(),
             "createdAt" to now,
-            "processingStatus" to ProcessingStatus.COMPLETED.name
+            "processingStatus" to ProcessingStatus.COMPLETED.name,
+            "batchId" to (batchId ?: ""),
+            "batchName" to (batchName ?: "")
         )
 
         try {
@@ -187,6 +236,19 @@ class SupabaseStorageRepository(
             )
         }
 
+        // Step 3: If assigned to a batch, notify students
+        if (!batchId.isNullOrBlank()) {
+            runCatching {
+                val notifRepo = NotificationRepository(firestore, firebaseAuth)
+                notifRepo.notifyBatchStudents(
+                    batchId = batchId,
+                    title = "New Batch Material Uploaded",
+                    message = "New material \"$title\" uploaded for ${batchName ?: "your batch"}.",
+                    relatedId = materialId
+                )
+            }
+        }
+
         Result.success(
             Material(
                 id = materialId,
@@ -197,7 +259,9 @@ class SupabaseStorageRepository(
                 subject = subject,
                 size = fileBytes.size.toLong(),
                 processingStatus = ProcessingStatus.COMPLETED,
-                createdAt = now
+                createdAt = now,
+                batchId = batchId,
+                batchName = batchName
             )
         )
     }
@@ -231,12 +295,31 @@ class SupabaseStorageRepository(
     }
 
     // -------------------------------------------------------------------------
-    // Time-limited Signed URL Generation
+    // Time-limited Signed URL Generation & Download
     // -------------------------------------------------------------------------
+
+    private suspend fun isAuthorizedForPath(uid: String, storagePath: String): Boolean {
+        if (storagePath.startsWith("materials/$uid/")) return true
+        return runCatching {
+            val matQuery = firestore.collection("materials")
+                .whereEqualTo("storagePath", storagePath)
+                .limit(1)
+                .get()
+                .await()
+            val doc = matQuery.documents.firstOrNull() ?: return@runCatching false
+            val batchId = doc.getString("batchId") ?: return@runCatching false
+            if (batchId.isBlank()) return@runCatching false
+            val batchDoc = firestore.collection("batches").document(batchId).get().await()
+            @Suppress("UNCHECKED_CAST")
+            val studentIds = batchDoc.get("studentIds") as? List<String> ?: emptyList()
+            val teacherId = batchDoc.getString("teacherId")
+            teacherId == uid || studentIds.contains(uid)
+        }.getOrDefault(false)
+    }
 
     /**
      * Generates a signed download URL for the private object at [storagePath].
-     * Enforces user isolation: [storagePath] MUST be inside `materials/<uid>/`.
+     * Enforces user isolation: [storagePath] MUST be owned by user or from an enrolled batch.
      */
     suspend fun createSignedUrl(
         storagePath: String,
@@ -246,7 +329,7 @@ class SupabaseStorageRepository(
             ?: return@withContext Result.failure(IllegalStateException("User is not authenticated."))
         val uid = currentUser.uid
 
-        if (!storagePath.startsWith("materials/$uid/")) {
+        if (!isAuthorizedForPath(uid, storagePath)) {
             return@withContext Result.failure(SecurityException("Unauthorized access to storage path."))
         }
 
@@ -259,15 +342,15 @@ class SupabaseStorageRepository(
     }
 
     /**
-     * Downloads binary content for a stored material under `materials/<uid>/...`.
-     * Enforces user isolation strictly.
+     * Downloads binary content for a stored material.
+     * Enforces user isolation or batch membership strictly.
      */
     suspend fun downloadMaterialBytes(storagePath: String): Result<ByteArray> = withContext(Dispatchers.IO) {
         val currentUser = firebaseAuth.currentUser
             ?: return@withContext Result.failure(IllegalStateException("User is not authenticated."))
         val uid = currentUser.uid
 
-        if (!storagePath.startsWith("materials/$uid/")) {
+        if (!isAuthorizedForPath(uid, storagePath)) {
             return@withContext Result.failure(SecurityException("Unauthorized access to storage path."))
         }
 

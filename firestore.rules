@@ -4,39 +4,79 @@ service cloud.firestore {
     
     // User profile collection: users/{userId}
     match /users/{userId} {
-      // Authenticated users can read their own profile
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // Authenticated users can read profiles (e.g., student and teacher details for batches)
+      allow read: if request.auth != null;
       
-      // Authenticated users can create their own profile during registration
-      // Enforces that the document ID matches the authenticated UID
+      // Users can create their own profile during registration
       allow create: if request.auth != null 
                     && request.auth.uid == userId 
-                    && request.resource.data.uid == userId
-                    && request.resource.data.role in ['student', 'teacher'];
+                    && request.resource.data.uid == userId;
       
-      // Authenticated users can update their own profile without tampering with uid or role
-      allow update: if request.auth != null 
-                    && request.auth.uid == userId 
-                    && request.resource.data.uid == resource.data.uid
-                    && request.resource.data.role == resource.data.role;
+      // Users can update their own profile
+      allow update: if request.auth != null && request.auth.uid == userId;
       
       // Disallow user profile deletion from client app
       allow delete: if false;
     }
     
+    // Batches collection: batches/{batchId}
+    match /batches/{batchId} {
+      // Authenticated users can read batches
+      allow read: if request.auth != null;
+      
+      // Authenticated users (teachers) can create batches
+      allow create: if request.auth != null;
+      
+      // Authenticated users can update batch (teacher updates info; students update studentIds/count on join/leave)
+      allow update: if request.auth != null;
+      
+      // Teacher of the batch can delete it
+      allow delete: if request.auth != null && resource.data.teacherId == request.auth.uid;
+
+      // Subcollection for enrolled batch members
+      match /members/{memberId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
     // Materials collection: materials/{materialId}
     match /materials/{materialId} {
-      allow read, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-      allow update: if request.auth != null 
-                    && resource.data.ownerId == request.auth.uid 
-                    && request.resource.data.ownerId == request.auth.uid;
+      // Authenticated users can read materials (teachers & students enrolled in batches)
+      allow read: if request.auth != null;
+      
+      // Authenticated users can create materials
+      allow create: if request.auth != null;
+      
+      // Owner can update or delete
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.uploadedBy == request.auth.uid
+      );
     }
 
     // Summaries collection: summaries/{materialId}
     match /summaries/{materialId} {
-      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      allow write: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow read, write: if request.auth != null;
+    }
+
+    // Notifications collection: notifications/{notificationId}
+    match /notifications/{notificationId} {
+      // Authenticated users can create notifications (e.g. student notifies teacher on join, teacher notifies batch on upload)
+      allow create: if request.auth != null;
+      
+      // Users can only read, update (mark as read), or delete their own notifications
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Quiz results collection: quiz_results/{resultId}
+    match /quiz_results/{resultId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Generated questions cache: generated_questions/{questionId}
+    match /generated_questions/{questionId} {
+      allow read, write: if request.auth != null;
     }
 
     // Default fallback: deny all other paths

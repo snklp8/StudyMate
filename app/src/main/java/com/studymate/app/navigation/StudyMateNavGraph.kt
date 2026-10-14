@@ -23,6 +23,8 @@ import com.studymate.app.ui.quiz.QuizResultScreen
 import com.studymate.app.ui.quiz.QuizSetupScreen
 import com.studymate.app.ui.settings.SettingsScreen
 import com.studymate.app.ui.student.StudentHomeScreen
+import com.studymate.app.ui.student.batches.StudentBatchDetailScreen
+import com.studymate.app.ui.student.batches.StudentBatchesScreen
 import com.studymate.app.ui.summary.SummaryScreen
 import com.studymate.app.ui.teacher.TeacherDashboardScreen
 import com.studymate.app.ui.teacher.analytics.BatchPerformanceScreen
@@ -120,6 +122,11 @@ fun StudyMateNavGraph(navController: NavHostController, startDestination: String
         }
         composable(Screen.Progress.route) { ProgressScreen(navController) }
         composable(Screen.StudentProfile.route) { StudentProfileScreen(navController) }
+        composable(Screen.StudentBatches.route) { StudentBatchesScreen(navController) }
+        composable(Screen.StudentBatchDetail.route) { backStackEntry ->
+            val batchId = backStackEntry.arguments?.getString("batchId") ?: ""
+            StudentBatchDetailScreen(batchId = batchId, navController = navController)
+        }
 
         // Teacher Screens
         composable(Screen.TeacherDashboard.route) { TeacherDashboardScreen(navController) }

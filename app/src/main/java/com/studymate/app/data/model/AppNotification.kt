@@ -5,7 +5,8 @@ data class AppNotification(
     val userId: String = "",
     val title: String = "",
     val message: String = "",
-    val type: String = "",
+    val type: String = "GENERAL", // "BATCH_JOIN", "BATCH_MATERIAL", "TEST", "QUIZ", etc.
+    val relatedId: String = "",
     val isRead: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

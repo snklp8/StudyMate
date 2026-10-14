@@ -13,5 +13,7 @@ data class Material(
     val subject: String = "",
     val size: Long? = null,
     val processingStatus: ProcessingStatus = ProcessingStatus.PENDING,
+    val batchId: String? = null,
+    val batchName: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -86,12 +86,14 @@ fun BatchDetailScreen(
 ) {
     val batch by viewModel.selectedBatch.collectAsState()
     val students by viewModel.batchStudents.collectAsState()
+    val batchMaterials by viewModel.batchMaterials.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Students", "Materials", "Tests", "Performance")
 
     LaunchedEffect(batchId) {
         viewModel.loadBatch(batchId)
         viewModel.loadBatchStudents(batchId)
+        viewModel.loadBatchMaterials(batchId)
     }
 
     Scaffold(
@@ -350,7 +352,7 @@ fun BatchDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "ASSIGNED COURSE MATERIALS",
+                                    text = "BATCH MATERIALS (${batchMaterials.size})",
                                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -363,13 +365,40 @@ fun BatchDetailScreen(
                             }
                         }
 
-                        val batchMaterials = listOf(
-                            Triple("Binary Trees & BST Basics", "PDF • 2.8 MB • Uploaded Yesterday", Icons.Default.PictureAsPdf to (PdfRed to PdfRedContainer)),
-                            Triple("Divide & Conquer Strategies", "PPT • 4.5 MB • Oct 12", Icons.Default.Slideshow to (PptOrange to PptOrangeContainer)),
-                            Triple("Tree Traversals Walkthrough", "YouTube Video • 24 mins • Oct 10", Icons.Default.PlayCircle to (DocBlue to DocBlueContainer))
-                        )
+                        if (batchMaterials.isEmpty()) {
+                            item {
+                                StudyMateCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = 24.dp
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            "No materials uploaded for this batch yet.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
-                        items(batchMaterials) { (title, sub, meta) ->
+                        items(batchMaterials) { material ->
+                            val matType = material.type
+                            val (matIcon, matTint, matBg) = when (matType) {
+                                com.studymate.app.data.model.MaterialType.PDF -> Triple(Icons.Default.PictureAsPdf, PdfRed, PdfRedContainer)
+                                com.studymate.app.data.model.MaterialType.PPT, com.studymate.app.data.model.MaterialType.PPTX -> Triple(Icons.Default.Slideshow, PptOrange, PptOrangeContainer)
+                                com.studymate.app.data.model.MaterialType.DOC, com.studymate.app.data.model.MaterialType.DOCX -> Triple(Icons.AutoMirrored.Filled.MenuBook, DocBlue, DocBlueContainer)
+                            }
+                            val sizeStr = when {
+                                material.size == null || material.size <= 0L -> ""
+                                material.size < 1024L * 1024L -> "${material.size / 1024L} KB"
+                                else -> String.format(java.util.Locale.US, "%.1f MB", material.size / (1024.0 * 1024.0))
+                            }
+                            val dateStr = java.text.SimpleDateFormat("MMM d", java.util.Locale.US).format(java.util.Date(material.createdAt))
+
                             StudyMateCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentPadding = 12.dp
@@ -381,20 +410,24 @@ fun BatchDetailScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
-                                            .background(meta.second.second, shape = RoundedCornerShape(10.dp)),
+                                            .background(matBg, shape = RoundedCornerShape(10.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = meta.first,
+                                            imageVector = matIcon,
                                             contentDescription = null,
-                                            tint = meta.second.first,
+                                            tint = matTint,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                        Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(material.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "${matType.name} • $sizeStr • $dateStr",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }

@@ -1,5 +1,9 @@
 package com.studymate.app.ui.teacher.batches
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +20,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -24,18 +30,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +58,7 @@ import com.studymate.app.ui.components.StudyMateTextField
 import com.studymate.app.ui.theme.BorderSubtle
 import com.studymate.app.ui.theme.SuccessGreen
 import com.studymate.app.ui.theme.SuccessGreenContainer
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,13 +66,21 @@ fun CreateBatchScreen(
     navController: NavController,
     viewModel: BatchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     var name by remember { mutableStateOf("") }
     var course by remember { mutableStateOf("") }
     var semester by remember { mutableStateOf("5") }
     var description by remember { mutableStateOf("") }
     var generatedCode by remember { mutableStateOf<String?>(null) }
 
+    val createState by viewModel.createState.collectAsState()
+    val isCreating = createState is CreateBatchUiState.Loading
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -156,16 +176,31 @@ fun CreateBatchScreen(
                     maxLines = 3
                 )
 
+                if (createState is CreateBatchUiState.Error) {
+                    Text(
+                        text = (createState as CreateBatchUiState.Error).message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(14.dp))
 
                 StudyMateButton(
-                    text = "Create Batch",
+                    text = if (isCreating) "Creating Batch..." else "Create Batch & Generate Code",
                     onClick = {
-                        val code = viewModel.createBatch(name, course, semester.toIntOrNull() ?: 1, "2026-2027")
-                        generatedCode = code
+                        viewModel.createBatch(
+                            name = name,
+                            course = course,
+                            semester = semester.toIntOrNull() ?: 1,
+                            year = "2026-2027",
+                            description = description
+                        ) { batch ->
+                            generatedCode = batch.batchCode
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = name.isNotBlank() && course.isNotBlank()
+                    enabled = name.isNotBlank() && course.isNotBlank() && !isCreating
                 )
             } else {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -221,11 +256,11 @@ fun CreateBatchScreen(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
-                            text = "INVITATION / ENROLLMENT CODE",
-                            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                            text = "UNIQUE JOIN CODE FOR STUDENTS",
+                            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.primaryContainer,
@@ -233,33 +268,74 @@ fun CreateBatchScreen(
                         ) {
                             Text(
                                 text = generatedCode!!,
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 2.sp
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 6.sp
                                 ),
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
-                                    .padding(vertical = 12.dp)
+                                    .padding(vertical = 16.dp)
                                     .fillMaxWidth(),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = "Students can use this code to join this batch directly.",
+                            text = "Share this 6-character code with your students. They can enter it in the app to join this batch directly.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            StudyMateOutlinedButton(
+                                text = "Copy Code",
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("StudyMate Batch Code", generatedCode!!)
+                                    clipboard.setPrimaryClip(clip)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Batch code copied to clipboard!")
+                                    }
+                                },
+                                leadingIcon = Icons.Default.ContentCopy,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            StudyMateButton(
+                                text = "Share",
+                                onClick = {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_SUBJECT, "Join $name on StudyMate")
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            "Join my batch '$name' ($course) on StudyMate!\nBatch Code: ${generatedCode!!}\nOpen the StudyMate app, go to Batches, and enter this code to join."
+                                        )
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Batch Code"))
+                                },
+                                leadingIcon = Icons.Default.Share,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 StudyMateButton(
-                    text = "Done",
-                    onClick = { navController.popBackStack() },
+                    text = "Go to Batches",
+                    onClick = {
+                        viewModel.resetCreateState()
+                        navController.popBackStack()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
