@@ -14,6 +14,7 @@ googleServices = "4.4.2"
 firebaseBom = "33.7.0"
 supabase = "3.0.3"
 ktor = "3.0.3"
+pdfboxAndroid = "2.0.27.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -45,6 +46,7 @@ supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version
 supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
 supabase-storage = { group = "io.github.jan-tennert.supabase", name = "storage-kt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

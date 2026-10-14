@@ -62,7 +62,7 @@ fun MaterialsListScreen(
 ) {
     val uiState by viewModel.materialsState.collectAsState()
     var selectedFilter by remember { mutableStateOf("All") }
-    val filterOptions = listOf("All", "PDF", "PPT", "DOC", "YouTube")
+    val filterOptions = listOf("All", "PDF", "PPT", "DOC")
 
     LaunchedEffect(Unit) {
         viewModel.loadMaterials()
@@ -80,7 +80,7 @@ fun MaterialsListScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Course notes, lecture slides & videos",
+                            text = "Course notes and lecture slides",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -145,7 +145,7 @@ fun MaterialsListScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "PDF, PPTX, DOCX or YouTube link",
+                                text = "PDF, PPTX, or DOCX documents",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

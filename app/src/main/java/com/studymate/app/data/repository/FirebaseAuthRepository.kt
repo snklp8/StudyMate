@@ -9,9 +9,11 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import com.studymate.app.data.model.User
 import com.studymate.app.data.model.UserRole
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -109,16 +111,22 @@ class FirebaseAuthRepository(
     override suspend fun getCurrentUser(): User? {
         val firebaseUser = auth.currentUser ?: return null
         return try {
-            val docSnapshot = firestore.collection("users").document(firebaseUser.uid).get().await()
+            // 1. Try local cache first for instant startup without waiting for network
+            val cachedDoc = runCatching {
+                firestore.collection("users").document(firebaseUser.uid).get(Source.CACHE).await()
+            }.getOrNull()?.takeIf { it.exists() }
+
+            // 2. If not in cache, fetch with a 3.5s timeout so the app never hangs on splash
+            val docSnapshot = cachedDoc ?: withTimeoutOrNull(3500L) {
+                firestore.collection("users").document(firebaseUser.uid).get().await()
+            } ?: return null
+
             if (!docSnapshot.exists()) {
-                // If authenticated session exists but Firestore profile is missing, sign out
-                auth.signOut()
                 return null
             }
 
             val roleString = docSnapshot.getString("role")?.lowercase()
             if (roleString == null || (roleString != "student" && roleString != "teacher")) {
-                auth.signOut()
                 return null
             }
 

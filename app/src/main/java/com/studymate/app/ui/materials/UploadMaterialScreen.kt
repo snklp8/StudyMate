@@ -121,10 +121,7 @@ fun UploadMaterialScreen(
     var title by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("PDF") }
-    val types = listOf("PDF", "PPT", "PPTX", "DOCX", "TXT", "YouTube")
-
-    var youtubeUrl by remember { mutableStateOf("") }
-    var youtubeAdded by remember { mutableStateOf(false) }
+    val types = listOf("PDF", "PPT", "PPTX", "DOCX")
 
     var selectedFile by remember { mutableStateOf<SelectedFileInfo?>(null) }
 
@@ -160,7 +157,6 @@ fun UploadMaterialScreen(
                         "PPT" -> "PPT"
                         "PPTX" -> "PPTX"
                         "DOC", "DOCX" -> "DOCX"
-                        "TXT" -> "TXT"
                         else -> selectedType
                     }
 
@@ -214,7 +210,7 @@ fun UploadMaterialScreen(
                     Column {
                         Text("Upload Study Material", fontWeight = FontWeight.Bold)
                         Text(
-                            "Add course notes, slides or video references",
+                            "Add course notes, slides or documents",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -320,111 +316,15 @@ fun UploadMaterialScreen(
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            // Source Content Area
-            if (selectedType == "YouTube") {
-                Text(
-                    text = "YOUTUBE STUDY LINK",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        letterSpacing = 1.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        StudyMateTextField(
-                            value = youtubeUrl,
-                            onValueChange = {
-                                youtubeUrl = it
-                                youtubeAdded = false
-                            },
-                            label = "Video URL",
-                            placeholder = "https://www.youtube.com/watch?v=...",
-                            leadingIcon = {
-                                Icon(Icons.Default.Link, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        )
-                    }
-
-                    StudyMateButton(
-                        text = if (youtubeAdded) "Added" else "Add",
-                        onClick = {
-                            if (youtubeUrl.isNotBlank()) {
-                                youtubeAdded = true
-                                if (title.isBlank()) title = "Video Lecture"
-                                if (subject.isBlank()) subject = "General Studies"
-                            }
-                        },
-                        modifier = Modifier.padding(top = 22.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Video Preview Card
-                AnimatedVisibility(visible = youtubeAdded || youtubeUrl.isNotBlank()) {
-                    StudyMateCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentPadding = 14.dp
-                    ) {
-                        Column {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(StudyMateNavy),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(Color.White.copy(alpha = 0.2f), shape = CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "Play",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = if (title.isNotBlank()) title else "YouTube Study Reference",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "$subject · Video Link",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            } else {
-                Text(
-                    text = "ATTACHED FILE",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        letterSpacing = 1.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "ATTACHED DOCUMENT",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(10.dp))
 
                 if (selectedFile != null) {
                     val file = selectedFile!!
@@ -493,8 +393,7 @@ fun UploadMaterialScreen(
                                     "application/vnd.ms-powerpoint",
                                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                                     "application/msword",
-                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                    "text/plain"
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                 )
                                 documentPickerLauncher.launch(mimeTypes)
                             },
@@ -528,14 +427,13 @@ fun UploadMaterialScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Supports PDF, PPT, PPTX, DOC, DOCX, TXT",
+                                text = "Supports PDF, PowerPoint (PPT, PPTX), Word (DOCX)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-            }
 
             Spacer(modifier = Modifier.height(30.dp))
 
@@ -557,7 +455,7 @@ fun UploadMaterialScreen(
                         return@StudyMateButton
                     }
 
-                    if (selectedType != "YouTube" && selectedFile == null) {
+                    if (selectedFile == null) {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Please select a document to upload.")
                         }
@@ -569,20 +467,16 @@ fun UploadMaterialScreen(
                         "PPT" -> MaterialType.PPT
                         "PPTX" -> MaterialType.PPTX
                         "DOC", "DOCX" -> MaterialType.DOCX
-                        "TXT" -> MaterialType.TXT
-                        "YOUTUBE" -> MaterialType.YOUTUBE
                         else -> MaterialType.PDF
                     }
 
-                    if (selectedFile != null) {
-                        viewModel.uploadMaterial(
-                            title = title.trim(),
-                            subject = subject.trim(),
-                            fileType = materialType,
-                            fileName = selectedFile!!.name,
-                            fileBytes = selectedFile!!.bytes
-                        )
-                    }
+                    viewModel.uploadMaterial(
+                        title = title.trim(),
+                        subject = subject.trim(),
+                        fileType = materialType,
+                        fileName = selectedFile!!.name,
+                        fileBytes = selectedFile!!.bytes
+                    )
                 },
                 modifier = Modifier.fillMaxWidth()
             )

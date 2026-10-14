@@ -16,18 +16,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -38,6 +42,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -72,9 +81,36 @@ fun MaterialDetailScreen(
     viewModel: MaterialsViewModel = viewModel()
 ) {
     val material by viewModel.selectedMaterial.collectAsState()
+    val context = LocalContext.current
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(materialId) {
         viewModel.loadMaterial(materialId)
+    }
+
+    if (showDeleteConfirmation && material != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Material?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete '${material?.title}'? This will permanently delete the uploaded file and associated study notes.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        viewModel.deleteMaterial(materialId)
+                        navController.popBackStack()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -100,6 +136,9 @@ fun MaterialDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showDeleteConfirmation = true }) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Material", tint = MaterialTheme.colorScheme.error)
+                    }
                     IconButton(onClick = { }) {
                         Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Bookmark")
                     }
@@ -124,7 +163,6 @@ fun MaterialDetailScreen(
         } else {
             val item = material!!
             val visual = resolveFileTypeVisual(item.type)
-            val isYouTube = item.type.equals("YouTube", ignoreCase = true) || item.type.equals("Video", ignoreCase = true)
 
             Column(
                 modifier = Modifier
@@ -134,70 +172,6 @@ fun MaterialDetailScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
-
-                // YouTube Player / Media Area if Video
-                if (isYouTube) {
-                    StudyMateCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = 12.dp
-                    ) {
-                        Column {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(180.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(StudyMateNavy),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(54.dp)
-                                        .background(Color.White.copy(alpha = 0.25f), shape = CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "Play Video",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
-
-                                Surface(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(10.dp),
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color.Black.copy(alpha = 0.75f)
-                                ) {
-                                    Text(
-                                        text = "28:45",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "${item.subject} · Video Lecture",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
 
                 // Metadata Card
                 StudyMateCard(
@@ -350,16 +324,35 @@ fun MaterialDetailScreen(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Primary Actions Grid / List
+                // Primary Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StudyMateButton(
-                        text = if (isYouTube) "Watch Video" else "View Material",
-                        onClick = { navController.navigate(Screen.Summary.createRoute(materialId)) },
+                        text = "View Material",
+                        onClick = {
+                            if (item.storagePath.isNotBlank()) {
+                                viewModel.getSignedUrl(item.storagePath) { res ->
+                                    res.onSuccess { url ->
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Cannot open viewer: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }.onFailure {
+                                        Toast.makeText(context, "Failed to load document link", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(context, "No file path available for this material", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         modifier = Modifier.weight(1f),
-                        leadingIcon = if (isYouTube) Icons.Default.PlayArrow else Icons.Default.Visibility
+                        leadingIcon = Icons.Default.Visibility
                     )
 
                     StudyMateOutlinedButton(
@@ -377,16 +370,30 @@ fun MaterialDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StudyMateOutlinedButton(
+                        text = "Delete",
+                        onClick = { showDeleteConfirmation = true },
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = Icons.Default.DeleteOutline
+                    )
+
+                    StudyMateOutlinedButton(
                         text = "Generate Questions",
                         onClick = { navController.navigate(Screen.QuestionGenerator.createRoute(materialId)) },
                         modifier = Modifier.weight(1f),
                         leadingIcon = Icons.Default.AutoAwesome
                     )
+                }
 
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     StudyMateButton(
                         text = "Start Quiz",
                         onClick = { navController.navigate(Screen.QuizSetup.route) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         leadingIcon = Icons.Default.Quiz
                     )
                 }

@@ -348,7 +348,7 @@ fun StudentHomeScreen(
                     tint = Color(0xFF7C3AED),
                     bg = Color(0xFFF5F3FF),
                     modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate(Screen.Summary.createRoute("1")) }
+                    onClick = { navController.navigate(Screen.Summary.createRoute("select")) }
                 )
             }
 

@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.storage)
     implementation(libs.ktor.client.android)
+    implementation(libs.pdfbox.android)
 
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)

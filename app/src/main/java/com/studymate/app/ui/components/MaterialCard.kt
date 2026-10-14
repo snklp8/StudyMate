@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Slideshow
@@ -60,7 +61,6 @@ fun resolveFileTypeVisual(typeStr: String): FileTypeVisual {
     return when {
         upper.contains("PDF") -> FileTypeVisual(Icons.Default.PictureAsPdf, PdfRed, PdfRedContainer, "PDF")
         upper.contains("PPT") -> FileTypeVisual(Icons.Default.Slideshow, PptOrange, PptOrangeContainer, "PPT")
-        upper.contains("YOUTUBE") || upper.contains("VIDEO") -> FileTypeVisual(Icons.Default.PlayCircle, YouTubeRed, YouTubeRedContainer, "VIDEO")
         else -> FileTypeVisual(Icons.Default.Description, DocBlue, DocBlueContainer, "DOC")
     }
 }
@@ -74,8 +74,7 @@ fun MaterialCard(
     val visual = when (material.type) {
         MaterialType.PDF -> FileTypeVisual(Icons.Default.PictureAsPdf, PdfRed, PdfRedContainer, "PDF")
         MaterialType.PPT, MaterialType.PPTX -> FileTypeVisual(Icons.Default.Slideshow, PptOrange, PptOrangeContainer, "PPT")
-        MaterialType.DOC, MaterialType.DOCX, MaterialType.TXT -> FileTypeVisual(Icons.Default.Description, DocBlue, DocBlueContainer, "DOC")
-        MaterialType.YOUTUBE -> FileTypeVisual(Icons.Default.PlayCircle, YouTubeRed, YouTubeRedContainer, "YOUTUBE")
+        MaterialType.DOC, MaterialType.DOCX -> FileTypeVisual(Icons.Default.Description, DocBlue, DocBlueContainer, "DOC")
     }
 
     val (statusText, statusColor, statusContainer) = when (material.processingStatus) {

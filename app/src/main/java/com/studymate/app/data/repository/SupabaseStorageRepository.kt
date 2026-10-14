@@ -258,6 +258,35 @@ class SupabaseStorageRepository(
         }
     }
 
+    /**
+     * Downloads binary content for a stored material under `materials/<uid>/...`.
+     * Enforces user isolation strictly.
+     */
+    suspend fun downloadMaterialBytes(storagePath: String): Result<ByteArray> = withContext(Dispatchers.IO) {
+        val currentUser = firebaseAuth.currentUser
+            ?: return@withContext Result.failure(IllegalStateException("User is not authenticated."))
+        val uid = currentUser.uid
+
+        if (!storagePath.startsWith("materials/$uid/")) {
+            return@withContext Result.failure(SecurityException("Unauthorized access to storage path."))
+        }
+
+        // Try downloading directly via authenticated client
+        val directResult = runCatching {
+            supabase.storage.from(bucket).downloadAuthenticated(storagePath)
+        }
+
+        if (directResult.isSuccess && directResult.getOrNull()?.isNotEmpty() == true) {
+            return@withContext directResult
+        }
+
+        // Fallback: Generate time-limited signed URL and download via stream
+        runCatching {
+            val signedUrl = createSignedUrl(storagePath, expiresInSeconds = 300L).getOrThrow()
+            java.net.URL(signedUrl).openStream().use { it.readBytes() }
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -269,15 +298,12 @@ class SupabaseStorageRepository(
             "PPTX" -> MaterialType.PPTX
             "DOC"  -> MaterialType.DOC
             "DOCX" -> MaterialType.DOCX
-            "TXT"  -> MaterialType.TXT
-            "YOUTUBE" -> MaterialType.YOUTUBE
             else -> when (substringAfterLast('.').lowercase()) {
                 "pdf"  -> MaterialType.PDF
                 "ppt"  -> MaterialType.PPT
                 "pptx" -> MaterialType.PPTX
                 "doc"  -> MaterialType.DOC
                 "docx" -> MaterialType.DOCX
-                "txt"  -> MaterialType.TXT
                 else   -> MaterialType.PDF
             }
         }

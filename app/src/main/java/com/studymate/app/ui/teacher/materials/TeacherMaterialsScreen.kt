@@ -228,10 +228,17 @@ fun TeacherMaterialsScreen(navController: NavController) {
                             else -> Triple(Icons.Default.Description, DocBlue, DocBlueContainer)
                         }
 
+                        val canSummarize = !item.type.equals("Video", ignoreCase = true) &&
+                                !item.type.equals("Image", ignoreCase = true) &&
+                                !item.type.equals("TXT", ignoreCase = true)
+
                         StudyMateCard(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { navController.navigate(Screen.Summary.createRoute(item.id)) },
+                                .clickable {
+                                    val route = if (canSummarize) Screen.Summary.createRoute(item.id) else Screen.MaterialDetail.createRoute(item.id)
+                                    navController.navigate(route)
+                                },
                             contentPadding = 12.dp
                         ) {
                             Row(
@@ -322,7 +329,8 @@ fun TeacherMaterialsScreen(navController: NavController) {
                                             text = { Text("View Material") },
                                             onClick = {
                                                 menuExpanded = false
-                                                navController.navigate(Screen.Summary.createRoute(item.id))
+                                                val route = if (canSummarize) Screen.Summary.createRoute(item.id) else Screen.MaterialDetail.createRoute(item.id)
+                                                navController.navigate(route)
                                             }
                                         )
                                         DropdownMenuItem(

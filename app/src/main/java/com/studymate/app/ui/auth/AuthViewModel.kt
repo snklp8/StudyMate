@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 sealed interface LoginState {
     object Idle : LoginState
@@ -90,7 +91,11 @@ class AuthViewModel(
 
     fun checkCurrentSession(onResolved: (User?) -> Unit) {
         viewModelScope.launch {
-            val user = authRepository.getCurrentUser()
+            val user = runCatching {
+                withTimeoutOrNull(4000L) {
+                    authRepository.getCurrentUser()
+                }
+            }.getOrNull()
             _currentUser.value = user
             onResolved(user)
         }

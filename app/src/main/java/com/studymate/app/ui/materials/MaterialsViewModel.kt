@@ -61,10 +61,16 @@ class MaterialsViewModel(
             _materialsState.value = MaterialsUiState.Loading
             try {
                 val materials = repository.getMaterials()
-                if (materials.isEmpty()) {
+                val allowedMaterials = materials.filter { mat ->
+                    mat.type in listOf(MaterialType.PDF, MaterialType.PPT, MaterialType.PPTX, MaterialType.DOC, MaterialType.DOCX) &&
+                    !mat.title.endsWith(".txt", ignoreCase = true) &&
+                    !mat.title.endsWith(".jpg", ignoreCase = true) &&
+                    !mat.title.endsWith(".png", ignoreCase = true)
+                }
+                if (allowedMaterials.isEmpty()) {
                     _materialsState.value = MaterialsUiState.Empty
                 } else {
-                    val items = materials.map { it.toMaterialItem() }
+                    val items = allowedMaterials.map { it.toMaterialItem() }
                     _materialsState.value = MaterialsUiState.Success(items)
                 }
             } catch (e: Exception) {
